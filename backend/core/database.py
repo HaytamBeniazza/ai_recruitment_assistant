@@ -45,7 +45,9 @@ def init_db() -> None:
     print("🗄️  Initializing database...")
     
     # Import all models here to ensure they are registered
-    # from models import candidates, jobs, applications, communications
+    from models.candidates import Candidate, CandidateAnalysisLog
+    from models.jobs import JobPosition
+    from models.interviews import Interview, AvailabilitySlot, CalendarIntegration, SchedulingLog
     
     # Create all tables
     Base.metadata.create_all(bind=engine)

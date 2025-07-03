@@ -47,6 +47,24 @@ class OpenAIClient:
         except Exception as e:
             return {"error": str(e)}
     
+    async def extract_skills(self, prompt: str) -> str:
+        """Generic skill extraction method for resume analysis"""
+        if not self.available:
+            return '{"error": "OpenAI client not available"}'
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=1500,
+                temperature=0.3
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            return f'{{"error": "{str(e)}"}}'
+    
     def check_connection(self) -> bool:
         """Test OpenAI API connection"""
         if not self.available:
@@ -66,6 +84,9 @@ class OpenAIClient:
 
 # Create global AI client instance
 openai_client = OpenAIClient()
+
+# Create alias for backward compatibility
+ai_client = openai_client
 
 print(f"🤖 AI Clients initialized")
 print(f"   OpenAI: {'✅ Available' if openai_client.available else '❌ Unavailable'}") 

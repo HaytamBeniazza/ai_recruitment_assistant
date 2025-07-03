@@ -16,14 +16,24 @@ class MessageBroker:
     """Redis-based message broker for agent communication"""
     
     def __init__(self):
-        self.redis_client = redis.Redis(
-            host=settings.redis_host,
-            port=settings.redis_port,
-            db=settings.redis_db,
-            decode_responses=True
-        )
+        try:
+            self.redis_client = redis.Redis(
+                host=settings.redis_host,
+                port=settings.redis_port,
+                db=settings.redis_db,
+                decode_responses=True
+            )
+            # Test connection
+            self.redis_client.ping()
+            self.connected = True
+            print(f"🔗 Connected to Redis: {settings.redis_host}:{settings.redis_port}")
+        except Exception as e:
+            print(f"❌ Redis connection failed: {e}")
+            print("ℹ️  Phase 1: Continuing without Redis - using mock message broker")
+            self.redis_client = None
+            self.connected = False
+        
         self.subscribers = {}
-        print(f"🔗 Connected to Redis: {settings.redis_host}:{settings.redis_port}")
     
     def publish_message(self, channel: str, message: Dict[str, Any]) -> bool:
         """
@@ -36,6 +46,11 @@ class MessageBroker:
         Returns:
             bool: True if message published successfully
         """
+        if not self.connected:
+            # Mock functionality for Phase 1
+            print(f"📤 [MOCK] Published to '{channel}': {message.get('type', 'unknown')}")
+            return True
+            
         try:
             # Add metadata to message
             enriched_message = {
@@ -141,6 +156,16 @@ class MessageBroker:
         }
         
         return self.publish_message("agent_status", message)
+    
+    async def connect(self):
+        """Async connection method for compatibility"""
+        pass  # Connection already handled in __init__
+    
+    async def disconnect(self):
+        """Async disconnect method"""
+        if self.connected and self.redis_client:
+            self.redis_client.close()
+            print("🔌 Disconnected from Redis")
     
     def get_agent_queue_size(self, agent_name: str) -> int:
         """Get the number of pending tasks for an agent"""

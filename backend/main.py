@@ -9,12 +9,17 @@ from fastapi.responses import JSONResponse
 import uvicorn
 from contextlib import asynccontextmanager
 
-# Import core modules (we'll create these next)
+# Import core modules
 from core.config import settings
 from core.database import init_db
+from core.message_broker import message_broker
 
-# Import API routes (we'll create these in Phase 1)
-# from api import candidates, jobs, agents, dashboard
+# Import API routes - Phase 1, 2, 3, 4 implementation
+from api.candidates import router as candidates_router
+from api.jobs import router as jobs_router
+from api.scheduler import router as scheduler_router
+from api.communication import router as communication_router
+from api.dashboard import router as dashboard_router
 
 # Application metadata
 app_metadata = {
@@ -29,18 +34,49 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting RecruitAI Pro...")
     print("📊 Initializing database...")
     
-    # Initialize database
-    # await init_db()
+    # Initialize database (SQLite for Phase 1)
+    try:
+        await init_db()
+        print("✅ Database initialized")
+    except Exception as e:
+        print(f"⚠️  Database initialization failed: {e}")
+        print("ℹ️  Phase 1: Continuing without database - API will use mock data")
+    
+    print("🔄 Starting message broker...")
+    # Initialize Redis message broker (optional for Phase 1)
+    try:
+        await message_broker.connect()
+    except Exception as e:
+        print(f"ℹ️  Message broker using mock mode: {e}")
     
     print("🤖 Loading AI agents...")
-    # Initialize agents here
+    # Initialize Resume Analyzer Agent
+    from agents.resume_analyzer import resume_analyzer
+    print("✅ Resume Analyzer Agent loaded")
+    
+    # Initialize Scheduler Agent  
+    from agents.scheduler import scheduler_agent
+    print("✅ Scheduler Agent loaded")
+    
+    # Initialize Communication Agent
+    from agents.communication_agent import get_communication_agent
+    communication_agent = get_communication_agent()
+    print("✅ Communication Agent loaded")
+    
+    # Initialize Dashboard Agent
+    from agents.dashboard_agent import get_dashboard_agent
+    dashboard_agent = get_dashboard_agent()
+    print("✅ Dashboard Agent loaded")
     
     print("✅ RecruitAI Pro is ready!")
+    print("📖 API Documentation: http://localhost:8000/docs")
     
     yield
     
     # Shutdown
     print("🛑 Shutting down RecruitAI Pro...")
+    await message_broker.disconnect()
+    print("✅ Shutdown complete")
 
 # Create FastAPI application
 app = FastAPI(lifespan=lifespan, **app_metadata)
@@ -64,7 +100,8 @@ async def health_check():
         "agents": {
             "resume_analyzer": "ready",
             "scheduler": "ready", 
-            "communication": "ready"
+            "communication": "ready",
+            "dashboard": "ready"
         }
     }
 
@@ -104,6 +141,12 @@ async def system_status():
                 "emails_sent": 0,
                 "delivery_rate": "98%",
                 "response_rate": "45%"
+            },
+            "dashboard": {
+                "status": "active",
+                "kpis_tracked": 8,
+                "charts_available": 4,
+                "data_freshness": "real-time"
             }
         },
         "infrastructure": {
@@ -113,11 +156,12 @@ async def system_status():
         }
     }
 
-# API Routes (will be added in subsequent phases)
-# app.include_router(candidates.router, prefix="/api/v1/candidates", tags=["Candidates"])
-# app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["Jobs"])
-# app.include_router(agents.router, prefix="/api/v1/agents", tags=["Agents"])
-# app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
+# API Routes - Phase 1, 2, 3, 4 Implementation
+app.include_router(candidates_router, tags=["Candidates"])
+app.include_router(jobs_router, tags=["Jobs"])
+app.include_router(scheduler_router, tags=["Scheduler"])
+app.include_router(communication_router, tags=["Communication"])
+app.include_router(dashboard_router, tags=["Dashboard"])  # Phase 4 - Analytics & Reporting
 
 # Global exception handler
 @app.exception_handler(Exception)

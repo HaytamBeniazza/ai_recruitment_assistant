@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     debug: bool = True
     environment: str = "development"
     
-    # Database Configuration
-    database_url: str = "postgresql://recruiter:password@localhost:5432/recruitai_db"
+    # Database Configuration  
+    database_url: str = "sqlite:///./recruitai_dev.db"  # SQLite for Phase 1 development
     database_host: str = "localhost"
     database_port: int = 5432
     database_name: str = "recruitai_db"
@@ -115,11 +115,15 @@ class Settings(BaseSettings):
     @property
     def database_url_sync(self) -> str:
         """Get synchronous database URL (for migrations)"""
+        if "sqlite:" in self.database_url:
+            return self.database_url
         return self.database_url.replace("postgresql://", "postgresql+psycopg2://")
     
     @property
     def database_url_async(self) -> str:
         """Get asynchronous database URL (for FastAPI)"""
+        if "sqlite:" in self.database_url:
+            return self.database_url
         return self.database_url.replace("postgresql://", "postgresql+asyncpg://")
     
     @property
@@ -139,7 +143,10 @@ settings = Settings()
 print(f"🔧 RecruitAI Pro Configuration Loaded")
 print(f"   Environment: {settings.environment}")
 print(f"   Debug Mode: {settings.debug}")
-print(f"   Database: {settings.database_host}:{settings.database_port}/{settings.database_name}")
+if "sqlite:" in settings.database_url:
+    print(f"   Database: SQLite (./recruitai_dev.db) - Phase 1 Development")
+else:
+    print(f"   Database: {settings.database_host}:{settings.database_port}/{settings.database_name}")
 print(f"   Redis: {settings.redis_host}:{settings.redis_port}/{settings.redis_db}")
 print(f"   Upload Folder: {settings.upload_folder}")
 print(f"   Max File Size: {settings.max_file_size // 1024 // 1024}MB")
