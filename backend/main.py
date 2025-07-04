@@ -21,6 +21,9 @@ from api.scheduler import router as scheduler_router
 from api.communication import router as communication_router
 from api.dashboard import router as dashboard_router
 
+# Import integration routes
+from integrations.webhooks import webhook_router
+
 # Application metadata
 app_metadata = {
     "title": "RecruitAI Pro",
@@ -162,6 +165,9 @@ app.include_router(jobs_router, tags=["Jobs"])
 app.include_router(scheduler_router, tags=["Scheduler"])
 app.include_router(communication_router, tags=["Communication"])
 app.include_router(dashboard_router, tags=["Dashboard"])  # Phase 4 - Analytics & Reporting
+
+# Real-time Data Integration Routes
+app.include_router(webhook_router, tags=["Integrations"])  # Real-time webhooks
 
 # Global exception handler
 @app.exception_handler(Exception)
